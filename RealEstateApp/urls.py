@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import user_signup,user_login,admin_dashboard,property,dummy
+from .views import user_signup,user_login,admin_dashboard,property,dummy,inquiry_view
 
 urlpatterns = [
     path('', admin_dashboard.AdminDashboard, name='AdminDashboard'),
@@ -12,5 +12,6 @@ urlpatterns = [
     path('filterproperty/', property.FilterProperty.as_view(), name='filterproperty'),
     path('PasswordResetRequest/',user_login.PasswordResetRequest.as_view(), name='PasswordResetRequest'),
     path('PasswordReset/',user_login.PasswordReset.as_view(), name='PasswordReset'),
+    path('inquiry/', inquiry_view.InquiryView.as_view(), name='inquiry'),
 
 ]
