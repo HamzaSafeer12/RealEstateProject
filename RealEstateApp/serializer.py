@@ -1,6 +1,7 @@
 from RealEstateApp.models import User
 from .models import Property
 from .models import DummyModel
+from .models import Inquiry
 from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,4 +17,9 @@ class PropertySerializer(serializers.ModelSerializer):
 class DummyModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = DummyModel
+        fields = '__all__'
+
+class InquirySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Inquiry
         fields = '__all__'
