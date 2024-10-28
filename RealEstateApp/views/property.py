@@ -74,6 +74,8 @@ class UpdateProperty(APIView):
     #     else:
     #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+from django.db.models import Count, Q
+
 class FilterProperty(APIView):
     def post(self, request):
         city = request.data.get('city', None)
@@ -81,6 +83,7 @@ class FilterProperty(APIView):
         price_range = request.data.get('price_range', None)
         product = request.data.get('product', None)
         area = request.data.get('area', None)
+        location = request.data.get('location', None)
 
         filters = Q()
 
@@ -94,10 +97,42 @@ class FilterProperty(APIView):
             filters &= Q(product=product)
         if area:
             filters &= Q(area__in=area)
+        if location:
+            filters &= Q(location__icontains=location)
 
-        filtered_properties = Property.objects.filter(filters)
-        print(f"filtered_properties: {filtered_properties}")
-        serializer = PropertySerializer(filtered_properties, many=True)
+        # Group by location and count properties for each unique location
+        filtered_properties = Property.objects.filter(filters).values(
+            'location'
+        ).annotate(
+            count=Count('property_id')
+        )
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+# filtered_properties
+# filtered_properties ek queryset hai jo Django ORM se return hoti hai. Is queryset mein, har record ek dictionary ke format mein hota hai, jismein tumhare specified fields hote hain
+
+
+# #         values('location'):
+
+# Yeh line unique locations ki list banata hai. Tumhare case mein, isse DHA, Gulberg, aur Model Town milte hain.
+# annotate(count=Count('property_id')):
+
+# Yeh line check karti hai ke har unique location ke against database mein kitni properties hain.
+# Jab DHA aata hai, toh yeh database ko dekhata hai aur count karta hai ke DHA location ke liye kitni records hain.
+# Agar DHA ke liye 3 properties hain (jese pehle example mein tha), toh count column mein 3 aayega.
+
+        # Create a response list
+        response_data = []
+        for prop in filtered_properties:
+            location_data = {
+                'location': prop['location'],  # Include the location name
+                'properties': list(Property.objects.filter(location=prop['location']).values(
+                    'agency_name', 'agency_product', 'area', 'bathroom', 
+                    'bedroom', 'category', 'city', 'contact_name', 'price'
+                )),
+                'count': prop['count']
+            }
+            response_data.append(location_data)
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
 
