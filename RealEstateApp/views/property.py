@@ -7,6 +7,9 @@ from RealEstateApp.serializer import PropertySerializer
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.core.cache import cache
+from rest_framework import status
+from django.db.models import Count
 
 class PropertyAPIView(APIView):
     permission_classes = [IsAuthenticated]  # Ensure ke sirf authenticated user access kare
@@ -64,18 +67,6 @@ class UpdateProperty(APIView):
         return Response({"message": "Property deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 
-
-    # def put(self, request, pk):
-    #     property_data = Property.objects.get(pk=pk)
-    #     serializer = PropertySerializer(property_data, data=request.data)
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response(serializer.data, status=status.HTTP_200_OK)
-    #     else:
-    #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-from django.db.models import Count, Q
-
 class FilterProperty(APIView):
     def post(self, request):
         city = request.data.get('city', None)
@@ -85,54 +76,65 @@ class FilterProperty(APIView):
         area = request.data.get('area', None)
         location = request.data.get('location', None)
 
-        filters = Q()
+        # Cache key generate karte hain based on filters
+        cache_key = f"filtered_properties:{city}:{bedrooms}:{price_range}:{product}:{area}:{location}"
+        
+        # Pehle cache se data lete hain
+        response_data = cache.get(cache_key)
+        if response_data:
+            print("Cache hit")
+        
+        if response_data is None:  # Agar cache mein nahi hai
+            print("Cache miss")
+            filters = Q()
 
-        if city:
-            filters &= Q(city=city)
-        if bedrooms:
-            filters &= Q(bedroom__in=bedrooms)
-        if price_range:
-            filters &= Q(price__gte=price_range[0], price__lte=price_range[1])
-        if product:
-            filters &= Q(product=product)
-        if area:
-            filters &= Q(area__in=area)
-        if location:
-            filters &= Q(location__icontains=location)
+            if city:
+                filters &= Q(city=city)
+            if bedrooms:
+                filters &= Q(bedroom__in=bedrooms)
+            if price_range:
+                filters &= Q(price__gte=price_range[0], price__lte=price_range[1])
+            if product:
+                filters &= Q(product=product)
+            if area:
+                filters &= Q(area__in=area)
+            if location:
+                filters &= Q(location__icontains=location)
 
-        # Group by location and count properties for each unique location
-        filtered_properties = Property.objects.filter(filters).values(
-            'location'
-        ).annotate(
-            count=Count('property_id')
-        )
+            # Group by location and count properties for each unique location
+            filtered_properties = Property.objects.filter(filters).values(
+                'location'
+            ).annotate(
+                count=Count('property_id')
+            )
 
-# filtered_properties
-# filtered_properties ek queryset hai jo Django ORM se return hoti hai. Is queryset mein, har record ek dictionary ke format mein hota hai, jismein tumhare specified fields hote hain
+# # filtered_properties
+# # filtered_properties ek queryset hai jo Django ORM se return hoti hai. Is queryset mein, har record ek dictionary ke format mein hota hai, jismein tumhare specified fields hote hain
 
 
-# #         values('location'):
+# # #         values('location'):
 
-# Yeh line unique locations ki list banata hai. Tumhare case mein, isse DHA, Gulberg, aur Model Town milte hain.
-# annotate(count=Count('property_id')):
+# # Yeh line unique locations ki list banata hai. Tumhare case mein, isse DHA, Gulberg, aur Model Town milte hain.
+# # annotate(count=Count('property_id')):
 
-# Yeh line check karti hai ke har unique location ke against database mein kitni properties hain.
-# Jab DHA aata hai, toh yeh database ko dekhata hai aur count karta hai ke DHA location ke liye kitni records hain.
-# Agar DHA ke liye 3 properties hain (jese pehle example mein tha), toh count column mein 3 aayega.
+# # Yeh line check karti hai ke har unique location ke against database mein kitni properties hain.
+# # Jab DHA aata hai, toh yeh database ko dekhata hai aur count karta hai ke DHA location ke liye kitni records hain.
+# # Agar DHA ke liye 3 properties hain (jese pehle example mein tha), toh count column mein 3 aayega.
 
-        # Create a response list
-        response_data = []
-        for prop in filtered_properties:
-            location_data = {
-                'location': prop['location'],  # Include the location name
-                'properties': list(Property.objects.filter(location=prop['location']).values(
-                    'agency_name', 'agency_product', 'area', 'bathroom', 
-                    'bedroom', 'category', 'city', 'contact_name', 'price'
-                )),
-                'count': prop['count']
-            }
-            response_data.append(location_data)
+#         # Create a response list
+            response_data = []
+            for prop in filtered_properties:
+                location_data = {
+                    'location': prop['location'],  # Include the location name
+                    'properties': list(Property.objects.filter(location=prop['location']).values(
+                        'agency_name', 'agency_product', 'area', 'bathroom', 
+                        'bedroom', 'category', 'city', 'contact_name', 'price'
+                    )),
+                    'count': prop['count']
+                }
+                response_data.append(location_data)
+
+            # Cache the response data for 5 minutes
+            cache.set(cache_key, response_data, timeout=300)
 
         return Response(response_data, status=status.HTTP_200_OK)
-
-
