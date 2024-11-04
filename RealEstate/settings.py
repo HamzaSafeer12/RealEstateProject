@@ -105,6 +105,12 @@ CACHES = {
     }
 }
 
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'  # Redis ka address
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Karachi'
+
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
