@@ -11,6 +11,7 @@ from django.shortcuts import render
 from django.middleware.csrf import get_token
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
+from RealEstateApp.task import send_password_reset_email
 
 # def login(request):
 #     if request.method == 'POST':
@@ -66,25 +67,24 @@ class PasswordResetRequest(APIView):
     def post(self, request):
         email = request.data.get('email')
         try:
-            user = User.objects.get(email=email)  # Check if the email exists in your database
+            user = User.objects.get(email=email)
             
-            # Generate a random pin or token
             reset_pin = str(random.randint(100000, 999999))
-            
-            # Save the pin in a temporary model or user model for later validation (optional)
             user.reset_pin = reset_pin
             user.save()
 
             subject = 'Password Reset Request'
             message = f'Your password reset PIN is: {reset_pin}'
-            from_email =  settings.EMAIL_HOST_USER
             recipient_list = [email]
-            send_mail(subject, message, from_email, recipient_list, fail_silently=False)
-            
+
+            # Yahan Celery task ko background mein run kar rahe hain
+            send_password_reset_email.delay(subject, message, recipient_list)
+
             return Response({"message": "Reset pin has been sent to your email."}, status=200)
 
         except User.DoesNotExist:
             return Response({"error": "This email is not registered."}, status=404)
+
 
 
 class PasswordReset(APIView):
