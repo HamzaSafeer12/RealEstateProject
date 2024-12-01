@@ -26,7 +26,13 @@ SECRET_KEY = 'django-insecure-n#-ys0v#7%u$rv(=2rqng-kequ1ybpp7y7d*l@eouh@d=$m5uu
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    'df7a-2407-aa80-314-8220-25c0-9644-9d5c-878e.ngrok-free.app',  # Ngrok URL
+    '*.ngrok-free.app',  # Future ngrok URLs ke liye wildcard
+]
+
 
 AUTH_USER_MODEL = 'RealEstateApp.User'
 
@@ -36,6 +42,12 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'hamzasafeer243@gmail.com'  # Replace with your email
 EMAIL_HOST_PASSWORD = 'ywyl gfhd jivv yxsf'   # Replace with your actual password
+
+
+STRIPE_PUBLISHABLE_KEY = "pk_test_51QLSXaLUPBpmuAE2Q3nMBZxQIsiSLOZmpWyhLshppTUdeKFEsI6awmurt1Q5gGXDMT5Thpj4AdwQqQVodR94ctH000qCvKnUgS"
+STRIPE_SECRET_KEY = "sk_test_51QLSXaLUPBpmuAE2zDfEeVDIhccOJkxCfokBfo13GIdKhdxvxeZdz4tp7S7NhxBJI2pSKWomQhZnz94TtRoSuFep00qnfJXETM"
+STRIPE_WEBHOOK_SECRET = "whsec_81158be678d9bfffc5a89b391c03df9fda65fdc47e830b48209ac32c1ad626fe"
+
 
 
 # Application definition
@@ -49,6 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'RealEstateApp',
     'rest_framework',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -67,7 +80,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
-
 
 
 ROOT_URLCONF = 'RealEstate.urls'
