@@ -10,10 +10,13 @@ from django.db.models import Q
 from django.core.cache import cache
 from rest_framework import status
 from django.db.models import Count
+# libraries for Swagger and and requestbody :(hmy apny requestbody k multabik krny k liya)
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.parsers import MultiPartParser, FormParser
+from drf_yasg import openapi
 
-class PropertyAPIView(APIView):
+class PropertyAPIView(APIView):    
     permission_classes = [IsAuthenticated]  # Ensure ke sirf authenticated user access kare
-    
     def get(self, request):
         properties = Property.objects.filter(user=request.user)
         if not properties.exists():
@@ -21,7 +24,13 @@ class PropertyAPIView(APIView):
 
         serializer = PropertySerializer(properties, many=True)
         return Response(serializer.data)
-
+    
+    parser_classes = [MultiPartParser, FormParser]  # Allow file uploads
+    #requestbody ko add krna allow ni kr rha tha tbhee ya kiya
+    @swagger_auto_schema(
+        request_body=PropertySerializer(many=False, partial=True),
+        security=[{'Bearer': []}]  # This will require the 'Bearer' token in the Authorization header
+    )
     def post(self, request):
         serializer = PropertySerializer(data=request.data)
         if serializer.is_valid():
